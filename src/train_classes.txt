@@ -1,0 +1,15 @@
+arm
+boy
+bread
+chicken
+child
+computer
+ear
+house
+leg
+sandwich
+television
+truck
+vehicle
+watch
+woman

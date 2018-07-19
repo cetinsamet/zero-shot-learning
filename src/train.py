@@ -18,27 +18,26 @@ WORD2VECPATH    = "../data/class_vectors.npy"
 DATAPATH        = "../data/zeroshot_data.pkl"
 MODELPATH       = "../model/"
 
-def load_keras_model():
-    with open(MODELPATH +"model.json", 'r') as json_file:
+def load_keras_model(model_path):
+    with open(model_path +"model.json", 'r') as json_file:
         loaded_model_json = json_file.read()
 
     loaded_model = model_from_json(loaded_model_json)
     # load weights into new model
-    loaded_model.load_weights(MODELPATH+"model.h5")
-    print("-> Model loaded from disk.")
+    loaded_model.load_weights(model_path+"model.h5")
     return loaded_model
 
-def save_keras_model(model):
+def save_keras_model(model, model_path):
     """save Keras model and its weights"""
-    if not os.path.exists(MODELPATH):
-        os.makedirs(MODELPATH)
+    if not os.path.exists(model_path):
+        os.makedirs(model_path)
 
     model_json = model.to_json()
-    with open(MODELPATH + "model.json", "w") as json_file:
+    with open(model_path + "model.json", "w") as json_file:
         json_file.write(model_json)
 
     # serialize weights to HDF5
-    model.save_weights(MODELPATH + "model.h5")
+    model.save_weights(model_path + "model.h5")
     print("-> zsl model is saved.")
     return
 
@@ -183,13 +182,13 @@ def main():
     out         = model.layers[-1].output
     zsl_model   = Model(inp, out)
     #print(zsl_model.summary)
-    save_keras_model(zsl_model)
+    save_keras_model(zsl_model, model_path=MODELPATH)
 
     # ---------------------------------------------------------------------------------------------------------------- #
     # ---------------------------------------------------------------------------------------------------------------- #
     # EVALUATION OF ZERO-SHOT LEARNING PERFORMANCE
     #(x_train, x_valid, x_zsl), (y_train, y_valid, y_zsl) = load_data()
-    #zsl_model = load_keras_model()
+    #zsl_model = load_keras_model(model_path=MODELPATH)
 
     class_vectors       = sorted(np.load(WORD2VECPATH), key=lambda x: x[0])
     classnames, vectors = zip(*class_vectors)

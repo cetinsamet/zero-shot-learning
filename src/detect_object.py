@@ -43,10 +43,15 @@ def main(argv):
     # PLACE WORD2VECS IN KDTREE
     tree                = KDTree(vectors)
     # FIND CLOSEST WORD2VEC and GET PREDICTION RESULT
-    dist, index         = tree.query(pred, k=1)
+    dist, index         = tree.query(pred, k=5)
+    pred_labels         = [classnames[idx] for idx in index[0]]
 
     # PRINT RESULT
-    print("Prediction: %s" % classnames[index[0][0]])
+    print()
+    print("--- Top-5 Prediction ---")
+    for i, classname in enumerate(pred_labels):
+        print("%d- %s" %(i+1, classname))
+    print()
     return
 
 if __name__ == '__main__':

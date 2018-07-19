@@ -1,22 +1,52 @@
 import numpy as np
 np.random.seed(123)
-import pickle
+import gzip
+import _pickle as cPickle
+import os
 
-from sklearn.preprocessing import LabelEncoder
-from keras.models import Sequential
+from sklearn.preprocessing import LabelEncoder, normalize
+from sklearn.neighbors import KDTree
+
+from keras.models import Sequential, Model, model_from_json
 from keras.layers import Dense, Dropout
 from keras.layers import BatchNormalization
+from keras.optimizers import Adam
 from keras.utils import to_categorical
 
 
 WORD2VECPATH    = "../data/class_vectors.npy"
 DATAPATH        = "../data/zeroshot_data.pkl"
+MODELPATH       = "../model/"
+
+def load_keras_model():
+    with open(MODELPATH +"model.json", 'r') as json_file:
+        loaded_model_json = json_file.read()
+
+    loaded_model = model_from_json(loaded_model_json)
+    # load weights into new model
+    loaded_model.load_weights(MODELPATH+"model.h5")
+    print("-> Model loaded from disk.")
+    return loaded_model
+
+def save_keras_model(model):
+    """save Keras model and its weights"""
+    if not os.path.exists(MODELPATH):
+        os.makedirs(MODELPATH)
+
+    model_json = model.to_json()
+    with open(MODELPATH + "model.json", "w") as json_file:
+        json_file.write(model_json)
+
+    # serialize weights to HDF5
+    model.save_weights(MODELPATH + "model.h5")
+    print("-> zsl model is saved.")
+    return
 
 def load_data():
     """read data, create datasets"""
     # READ DATA
-    with open(DATAPATH, 'rb') as infile:
-        data = pickle.load(infile)
+    with gzip.GzipFile(DATAPATH, 'rb') as infile:
+        data = cPickle.load(infile)
 
     # SHUFFLE DATA
     np.random.shuffle(data)
@@ -50,23 +80,30 @@ def load_data():
     # FORM X_TRAIN AND Y_TRAIN
     x_train, y_train    = zip(*train_data)
     x_train, y_train    = np.squeeze(np.asarray(x_train)), np.squeeze(np.asarray(y_train))
+    # L2 NORMALIZE X_TRAIN
+    x_train = normalize(x_train, norm='l2')
 
     # FORM X_VALID AND Y_VALID
     x_valid, y_valid = zip(*valid_data)
     x_valid, y_valid = np.squeeze(np.asarray(x_valid)), np.squeeze(np.asarray(y_valid))
+    # L2 NORMALIZE X_VALID
+    x_valid = normalize(x_valid, norm='l2')
 
 
     ### SPLIT DATA FOR ZERO-SHOT
     zsl_data = [(data_features[i], data_classnames[i]) for i in range(len(data)) if data[i][0] in zsl_classes]
     # SHUFFLE ZERO-SHOT DATA
     np.random.shuffle(zsl_data)
-    zsl_data = [(data[0], to_categorical(label_encoder.transform([data[1]]), num_classes=20)) for data in zsl_data]
 
     # FORM X_ZSL AND Y_ZSL
     x_zsl, y_zsl = zip(*zsl_data)
     x_zsl, y_zsl = np.squeeze(np.asarray(x_zsl)), np.squeeze(np.asarray(y_zsl))
+    # L2 NORMALIZE X_ZSL
+    x_zsl = normalize(x_zsl, norm='l2')
 
+    print("-> data loading is completed.")
     return (x_train, x_valid, x_zsl), (y_train, y_valid, y_zsl)
+
 
 def custom_kernel_init(shape):
     class_vectors       = sorted(np.load(WORD2VECPATH), key=lambda x:x[0])
@@ -77,13 +114,12 @@ def custom_kernel_init(shape):
 
 def  build_model():
     model = Sequential()
-    model.add(Dense(4096, input_shape=(4096,), activation='relu'))
-    #model.add(BatchNormalization())
-    #model.add(Dropout(0.7))
-    model.add(Dense(1024, activation='relu'))
-    #model.add(Dropout(0.3))
-    #model.add(BatchNormalization())
+    model.add(Dense(1024, input_shape=(4096,), activation='relu'))
+    model.add(BatchNormalization())
+    model.add(Dropout(0.8))
     model.add(Dense(512, activation='relu'))
+    model.add(Dropout(0.5))
+    model.add(Dense(256, activation='relu'))
     model.add(Dense(NUM_ATTR, activation='relu'))
     model.add(Dense(NUM_CLASS, activation='softmax', trainable=False, kernel_initializer=custom_kernel_init))
 
@@ -94,9 +130,9 @@ def  build_model():
 def train_model(model, train_data, valid_data):
     x_train, y_train = train_data
     x_valid, y_valid = valid_data
-
+    adam = Adam(lr=5e-5)
     model.compile(loss      = 'categorical_crossentropy',
-                  optimizer = 'adam',
+                  optimizer = adam,
                   metrics   = ['categorical_accuracy', 'top_k_categorical_accuracy'])
 
     history = model.fit(x_train, y_train,
@@ -110,6 +146,7 @@ def train_model(model, train_data, valid_data):
     return history
 
 def main():
+
     global train_classes
     with open('train_classes.txt', 'r') as infile:
         train_classes = [str.strip(line) for line in infile]
@@ -123,18 +160,59 @@ def main():
     # SET HYPERPARAMETERS
 
     global NUM_CLASS, NUM_ATTR, EPOCH, BATCH_SIZE
-    NUM_CLASS   = 20
-    NUM_ATTR    = 300
-    BATCH_SIZE  = 32
-    EPOCH       = 20
+    NUM_CLASS = 20
+    NUM_ATTR = 300
+    BATCH_SIZE = 128
+    EPOCH = 50
 
     # ---------------------------------------------------------------------------------------------------------------- #
     # ---------------------------------------------------------------------------------------------------------------- #
     # TRAINING PHASE
-    (x_train, x_valid, x_zsl), (y_train, y_valid, y_zsl) = load_data()
-    #model = build_model()
-    #train_model(model, (x_train, y_train), (x_valid, y_valid))
 
+    (x_train, x_valid, x_zsl), (y_train, y_valid, y_zsl) = load_data()
+    model = build_model()
+    train_model(model, (x_train, y_train), (x_valid, y_valid))
+    #print(model.summary)
+
+    # ---------------------------------------------------------------------------------------------------------------- #
+    # ---------------------------------------------------------------------------------------------------------------- #
+    # CREATE AND SAVE ZSL MODEL
+
+    model.layers.pop()
+    inp         = model.input
+    out         = model.layers[-1].output
+    zsl_model   = Model(inp, out)
+    #print(zsl_model.summary)
+    save_keras_model(zsl_model)
+
+    # ---------------------------------------------------------------------------------------------------------------- #
+    # ---------------------------------------------------------------------------------------------------------------- #
+    # EVALUATION OF ZERO-SHOT LEARNING PERFORMANCE
+    #(x_train, x_valid, x_zsl), (y_train, y_valid, y_zsl) = load_data()
+    #zsl_model = load_keras_model()
+
+    class_vectors       = sorted(np.load(WORD2VECPATH), key=lambda x: x[0])
+    classnames, vectors = zip(*class_vectors)
+    classnames          = list(classnames)
+    vectors             = np.asarray(vectors, dtype=np.float)
+
+    tree        = KDTree(vectors)
+    pred_zsl    = zsl_model.predict(x_zsl)
+
+    top5 = 0
+    for i, pred in enumerate(pred_zsl):
+        pred            = np.expand_dims(pred, axis=0)
+        dist_5, index_5 = tree.query(pred, k=5)
+        pred_labels     = [classnames[index] for index in index_5[0]]
+        true_label      = y_zsl[i]
+
+        if true_label in pred_labels:
+            top5 += 1
+
+    print()
+    print("ZERO SHOT LEARNING SCORE")
+    print("-> Top-5 Accuracy: %.2f" % (top5/float(len(x_zsl))))
+    return
 
 if __name__ == '__main__':
     main()

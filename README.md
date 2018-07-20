@@ -30,4 +30,4 @@ $**python3**  detect_object.py  ../test.jpg
 *All related prediction results are ranked in first three.*  
   
 P.S. Remember, the prediction results are only allowed to be among above classes (train and zero-shot classes).  
-Algorithm will fail in case you try to detect an object from different other classes.
+Algorithm will fail (although it will do its best to predict most related class) in case you try to detect an object from different other classes.

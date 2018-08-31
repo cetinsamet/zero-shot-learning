@@ -171,17 +171,16 @@ def main():
     (x_train, x_valid, x_zsl), (y_train, y_valid, y_zsl) = load_data()
     model = build_model()
     train_model(model, (x_train, y_train), (x_valid, y_valid))
-    #print(model.summary)
+    print(model.summary())
 
     # ---------------------------------------------------------------------------------------------------------------- #
     # ---------------------------------------------------------------------------------------------------------------- #
     # CREATE AND SAVE ZSL MODEL
 
-    model.layers.pop()
     inp         = model.input
-    out         = model.layers[-1].output
+    out         = model.layers[-2].output
     zsl_model   = Model(inp, out)
-    #print(zsl_model.summary)
+    print(zsl_model.summary())
     save_keras_model(zsl_model, model_path=MODELPATH)
 
     # ---------------------------------------------------------------------------------------------------------------- #

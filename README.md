@@ -4,7 +4,7 @@ Implementation of Zero-Shot Learning algorithm
 Zero-Shot learning method aims to solve a task without receiving any example of that task at training phase.  
 It simply allows us to recognize objects *we have not seen before*.  
   
-Check for detailed Medium story that I wrote: https://medium.com/@cetinsamet/zero-shot-learning-53080995d45f  
+Check the Medium story that I wrote for details: https://medium.com/@cetinsamet/zero-shot-learning-53080995d45f  
   
 ### Classes  
 **Train Classes:**  

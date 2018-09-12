@@ -19,11 +19,11 @@ $**python3**  detect_object.py  input-image-path
 $**cd**  src  
 $**python3**  detect_object.py  ../test.jpg  
 **->** --- Top-5 Prediction ---  
-**->** 1- truck  
-**->** 2- vehicle  
+**->** 1- vehicle  
+**->** 2- truck  
 **->** 3- car  
 **->** 4- house  
-**->** 5- leg  
+**->** 5- chicken  
   
 ![Example Image](https://github.com/cetinsamet/zero-shot-learning/blob/master/test.jpg)  
 *Test image is a beautiful green Jaguar E-Type.*  

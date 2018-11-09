@@ -1,3 +1,10 @@
+#
+# feature_extractor.py
+#
+# Created by Samet Cetin.
+# Contact: cetin.samet@outlook.com
+#
+
 import keras
 from keras import backend as K
 from keras.preprocessing import image

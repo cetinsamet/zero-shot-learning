@@ -1,3 +1,10 @@
+#
+# train.py
+#
+# Created by Samet Cetin.
+# Contact: cetin.samet@outlook.com
+#
+
 import numpy as np
 np.random.seed(123)
 import gzip
@@ -151,7 +158,7 @@ def main():
     global zsl_classes
     with open('zsl_classes.txt', 'r') as infile:
         zsl_classes = [str.strip(line) for line in infile]
-    '''
+
     # ---------------------------------------------------------------------------------------------------------------- #
     # ---------------------------------------------------------------------------------------------------------------- #
     # SET HYPERPARAMETERS
@@ -160,7 +167,7 @@ def main():
     NUM_CLASS = 15
     NUM_ATTR = 300
     BATCH_SIZE = 128
-    EPOCH = 50
+    EPOCH = 65
 
     # ---------------------------------------------------------------------------------------------------------------- #
     # ---------------------------------------------------------------------------------------------------------------- #
@@ -180,12 +187,12 @@ def main():
     zsl_model   = Model(inp, out)
     print(zsl_model.summary())
     save_keras_model(zsl_model, model_path=MODELPATH)
-    '''
+
     # ---------------------------------------------------------------------------------------------------------------- #
     # ---------------------------------------------------------------------------------------------------------------- #
     # EVALUATION OF ZERO-SHOT LEARNING PERFORMANCE
-    (x_train, x_valid, x_zsl), (y_train, y_valid, y_zsl) = load_data()
-    zsl_model = load_keras_model(model_path=MODELPATH)
+    #(x_train, x_valid, x_zsl), (y_train, y_valid, y_zsl) = load_data()
+    #zsl_model = load_keras_model(model_path=MODELPATH)
 
     class_vectors       = sorted(np.load(WORD2VECPATH), key=lambda x: x[0])
     classnames, vectors = zip(*class_vectors)

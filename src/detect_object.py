@@ -1,3 +1,10 @@
+#
+# detect_object.py
+#
+# Created by Samet Cetin.
+# Contact: cetin.samet@outlook.com
+#
+
 import sys
 import numpy as np
 from PIL import Image
